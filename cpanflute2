@@ -1,5 +1,8 @@
 #!/usr/bin/perl -w
 
+eval 'exec /usr/bin/perl -w -S $0 ${1+"$@"}'
+    if 0; # not running under some shell
+
 use strict;
 
 #
@@ -43,7 +46,7 @@ $defaults{'installdirs'} = "";
 # Parse command line options
 my %options;
 GetOptions(\%options, "outdir=s", "tmpdir=s", "email=s", "name|n=s", "create",
-    "test|t", "epoch|e=n", "version|v=s", "release|r=s", "perlver=s", "patch=s",
+    "test|t", "epoch|e=n", "version|v=s", "release|r=s", "perlver=s", "patch=s@",
     "noarch", "arch|a=s", "noperlreqs", "usage", "buildall|b", "installdirs=s",
     "descfile=s", "help", "requires=s@", "buildrequires=s@", "sign", "post=s",
     "pre=s", "preun=s", "postun=s") or die_usage();
@@ -145,11 +148,16 @@ if (my @files = Archive::Tar->list_archive("$tmpdir/$tarball")) {
   }
 }
 
-my $patchfile = '';
+#
+# Get patches copied into place
+my $patchfile  = '';
+my @patchfiles = ();
+my $patch      = '';
 if ($options{patch}) {
-  copy($options{patch}, $tmpdir)
-    or die "copy $options{patch}: $!";
-  $patchfile = $options{patch};
+    for $patch (@{$options{'patch'}}) {
+	copy($patch, $tmpdir) or die "copy ${patch}: $!";
+	push @patchfiles, (basename($patch));
+    }
 }
 
 #
@@ -220,8 +228,9 @@ if ($plat_perl_reqs) {
 }
 
 $spec->push_source($tarball);
-$spec->push_patch(basename($patchfile))
-  if $patchfile;
+foreach $patchfile (@patchfiles) {
+	$spec->push_patch($patchfile)
+}
 
 # make a URL that can actually possibly take you to the right place
 $spec->url(sprintf('http://search.cpan.org/dist/%s/', uri_escape($name)));
@@ -229,13 +238,7 @@ $spec->url(sprintf('http://search.cpan.org/dist/%s/', uri_escape($name)));
 
 # now we get into the multiline tags.  stolen mostly verbatim from
 # cpanflute1
-
-my $patch = '';
-if ($patchfile) {
-  $patch = "%patch0 -p1\n";
-}
-
-$spec->prep("%setup -q -n $name-%{version} $create\n$patch");
+$spec->prep("%setup -q -n $name-%{version} $create\n");
 $spec->file_param('-f %{name}-%{version}-%{release}-filelist');
 $spec->push_file('%defattr(-,root,root,-)');
 $spec->push_file('%doc ' . join(' ', sort @docs)) if @docs;

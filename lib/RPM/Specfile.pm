@@ -6,7 +6,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '1.12';
+$VERSION = '1.13';
 
 sub new {
   my $class = shift;
@@ -149,6 +149,15 @@ sub generate_specfile {
   }
 
   $output .= "\n";
+
+  #
+  # Add patch entries to the %prep section if they exist:
+  my $prep = $self->prep();
+  for my $i (0 .. $#patches) {
+    $prep .= "\n" if($i == 0);		# Just in case they did not add a newline
+    $prep .= "%patch${i} -p1\n"; 
+  }
+  $self->prep($prep) if(defined($prep));
 
   foreach my $sect (qw/description prep build install clean pre post preun postun/) {
     next if(!defined($self->$sect())); 

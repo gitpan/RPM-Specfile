@@ -5,4 +5,4 @@ README
 lib/RPM/Specfile.pm
 test.pl
 cpanflute2
-META.yml                                Module meta-data in YAML
+META.yml                                Module meta-data (added by MakeMaker)

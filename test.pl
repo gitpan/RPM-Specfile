@@ -19,6 +19,7 @@ $spec->group("Applications/CPAN");
 $spec->push_source("blippy-foo-1.00.tar.gz");
 $spec->push_source("extra-blippy.conf");
 $spec->push_patch("super-blippy.patch");
+$spec->push_patch("another.patch");
 $spec->push_require("foo >= 1.2");
 $spec->push_require("foo2 >= 1.2");
 $spec->push_buildrequire("xfoo >= 1.2");
