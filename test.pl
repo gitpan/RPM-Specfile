@@ -20,6 +20,9 @@ $spec->push_source("blippy-foo-1.00.tar.gz");
 $spec->push_source("extra-blippy.conf");
 $spec->push_patch("super-blippy.patch");
 $spec->push_require("foo >= 1.2");
+$spec->push_require("foo2 >= 1.2");
+$spec->push_buildrequire("xfoo >= 1.2");
+$spec->push_buildrequire("xfoo2 >= 1.2");
 $spec->description(<<E);
 This is an extra blippy module.  It slices, it dices.
 Author: Blippy Foo <cturner\@redhat.com>

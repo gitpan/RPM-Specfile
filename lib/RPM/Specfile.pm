@@ -6,7 +6,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '1.06';
+$VERSION = '1.08';
 
 sub new {
   my $class = shift;
@@ -16,7 +16,7 @@ sub new {
   return $self;
 }
 
-my @simple_accessors = qw/name version release epoch license group url description prep build clean install summary buildroot buildrequires file_param packager vendor distribution buildarch/;
+my @simple_accessors = qw/name version release epoch license group url description prep build clean install summary buildroot file_param packager vendor distribution buildarch/;
 
 foreach my $field (@simple_accessors) {
   my $sub = q {
@@ -38,7 +38,7 @@ foreach my $field (@simple_accessors) {
   }
 }
 
-my @array_accessors = qw/source patch changelog provide require file/;
+my @array_accessors = qw/source patch changelog provide require file buildrequire/;
 
 foreach my $field (@array_accessors) {
   my $sub = q {
@@ -104,16 +104,21 @@ sub generate_specfile {
   my %defaults = ( buildroot => "%{_tmppath}/%{name}-root" );
   $self->$_($self->$_() || $defaults{$_}) foreach keys %defaults;
 
-  my %proper_names = ( url => "URL", buildroot => "BuildRoot", "buildrequires" => "BuildRequires" );
+  my %proper_names = ( url => "URL", buildroot => "BuildRoot" );
 
-  foreach my $tag (qw/name version release epoch packager vendor distribution summary license group url buildroot buildrequires buildarch/) {
+  foreach my $tag (qw/name version release epoch packager vendor distribution summary license group url buildroot buildarch/) {
     my $proper = $proper_names{$tag} || ucfirst $tag;
 
     next unless defined $self->$tag();
     $output .= "$proper: " . $self->$tag() . "\n";
   }
 
-  my @reqs = $self->require;
+  my @reqs = $self->buildrequire;
+  for my $i (0 .. $#reqs) {
+    $output .= "BuildRequires: $reqs[$i]\n";
+  }
+
+  @reqs = $self->require;
   for my $i (0 .. $#reqs) {
     $output .= "Requires: $reqs[$i]\n";
   }
