@@ -6,7 +6,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '1.09';
+$VERSION = '1.10';
 
 sub new {
   my $class = shift;
@@ -16,7 +16,12 @@ sub new {
   return $self;
 }
 
-my @simple_accessors = qw/name version release epoch license group url description prep build clean install summary buildroot file_param packager vendor distribution buildarch/;
+my @simple_accessors =
+  qw(
+     build buildarch buildrequires buildroot clean description distribution
+     epoch file_param group install license name packager prep release requires
+     summary url vendor version
+    );
 
 foreach my $field (@simple_accessors) {
   my $sub = q {
@@ -88,12 +93,14 @@ sub add_changelog_entry {
   my $self = shift;
   my $who = shift;
   my $entry = shift;
+  my $version = shift;
 
   POSIX::setlocale( &POSIX::LC_ALL, "C" );
 
   my $output;
-  $output .= strftime("* %a %b %d %Y $who\n", localtime time);
-  $output .= "- $entry\n";
+  $output .= strftime("* %a %b %d %Y $who", localtime time);
+  $output .= " - $version" if $version;
+  $output .= "\n- $entry\n";
 
   $self->push_changelog($output);
 }
@@ -103,12 +110,17 @@ sub generate_specfile {
 
   my $output;
 
-  my %defaults = ( buildroot => "%{_tmppath}/%{name}-root" );
+  my %defaults =
+    ( buildroot => "%{_tmppath}/%{name}-%{version}-%{release}-root" );
   $self->$_($self->$_() || $defaults{$_}) foreach keys %defaults;
 
-  my %proper_names = ( url => "URL", buildroot => "BuildRoot" );
+  my %proper_names = ( url           => 'URL',
+                       buildroot     => 'BuildRoot',
+                       buildrequires => 'BuildRequires',
+                       buildarch     => 'BuildArch',
+                     );
 
-  foreach my $tag (qw/name version release epoch packager vendor distribution summary license group url buildroot buildarch/) {
+  foreach my $tag (qw/summary name version release epoch packager vendor distribution license group url buildroot buildarch requires buildrequires/) {
     my $proper = $proper_names{$tag} || ucfirst $tag;
 
     next unless defined $self->$tag();
@@ -137,9 +149,13 @@ sub generate_specfile {
 
   $output .= "\n";
 
-  foreach my $sect (qw/description prep build clean install/) {
+  foreach my $sect (qw/description prep build install clean/) {
     $output .= "%$sect\n";
-    $output .= $self->$sect() . "\n";
+    my $content = $self->$sect();
+    # remove leading and trailing whitespace and spurious linefeeds
+    $content =~ s/^\s*\n*//s;
+    $content =~ s/[\s\n]*$/\n\n/s;
+    $output .= $content;
   }
 
   if ($self->file_param) {

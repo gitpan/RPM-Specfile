@@ -4,7 +4,12 @@ use ExtUtils::MakeMaker;
 WriteMakefile(
     'NAME'		=> 'RPM::Specfile',
     'VERSION_FROM'	=> 'lib/RPM/Specfile.pm', # finds $VERSION
-    'PREREQ_PM'		=> {}, # e.g., Module::Name => 1.1
+    'PREREQ_PM'		=> { 'URI::Escape'    => 0,
+			     'Archive::Tar'   => 0,
+			     'Getopt::Long'   => 0,
+			     'File::Basename' => 0,
+			     'File::Copy'     => 0,
+			   },
     'EXE_FILES'         => [ 'cpanflute2' ],
 #    'PL_FILES'          => { 'cpanflute2.PL' => 'cpanflute2' },
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
