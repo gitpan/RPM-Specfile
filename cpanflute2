@@ -255,11 +255,11 @@ if ($options{'installdirs'}) {
   $installdirs = "INSTALLDIRS=$options{'installdirs'}";
 }
 
-my $makefile_pl = qq{CFLAGS="\$RPM_OPT_FLAGS" perl Makefile.PL};
+my $makefile_pl = qq{CFLAGS="\$RPM_OPT_FLAGS" perl Makefile.PL < /dev/null};
 my $make_install = qq{%makeinstall PREFIX=\$RPM_BUILD_ROOT%{_prefix} $installdirs};
 
 if ($perlver =~ /5.8.0/) {
-  $makefile_pl = qq{CFLAGS="\$RPM_OPT_FLAGS" perl Makefile.PL PREFIX=\$RPM_BUILD_ROOT%{_prefix} $installdirs};
+  $makefile_pl = qq{CFLAGS="\$RPM_OPT_FLAGS" perl Makefile.PL PREFIX=\$RPM_BUILD_ROOT%{_prefix} $installdirs < /dev/null};
   $make_install = qq{%makeinstall};
 }
 
@@ -277,7 +277,7 @@ mkdir -p $RPM_BUILD_ROOT$installarchlib
 $make_install
 rm -f `find $RPM_BUILD_ROOT -type f -name perllocal.pod -o -name .packlist`
 
-[ -x %{_libdir}/rpm/brp-compress ] && %{_libdir}/rpm/brp-compress
+[ -x /usr/lib/rpm/brp-compress ] && /usr/lib/rpm/brp-compress
 
 find $RPM_BUILD_ROOT%{_prefix} -type f -print | \
 	sed "s@^$RPM_BUILD_ROOT@@g" > %{name}-%{version}-%{release}-filelist
