@@ -9,5 +9,5 @@ WriteMakefile(
 #    'PL_FILES'          => { 'cpanflute2.PL' => 'cpanflute2' },
     ($] >= 5.005 ?    ## Add these new keywords supported since 5.005
       (ABSTRACT_FROM => 'lib/RPM/Specfile.pm', # retrieve abstract from module
-       AUTHOR     => 'A. U. Thor <a.u.thor@a.galaxy.far.far.away>') : ()),
+       AUTHOR     => 'Chip Turner <cturner@redhat.com>') : ()),
 );

@@ -6,7 +6,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '1.02';
+$VERSION = '1.03';
 
 sub new {
   my $class = shift;
@@ -165,6 +165,7 @@ sub write_specfile {
 
 __END__
 # Below is stub documentation for your module. You better edit it!
+# TODO: yes, I better edit this better.
 
 =head1 NAME
 
@@ -176,7 +177,8 @@ RPM::Specfile - Perl extension for creating RPM Specfiles
 
 =head1 DESCRIPTION
 
-Simple module for creation of RPM Spec files
+Simple module for creation of RPM Spec files.  Used by cpanflute2 to turn CPAN tarballs into RPM modules.
+See the included script cpanflute2 for usage; documentation coming soon.
 
 =head2 EXPORT
 
