@@ -199,7 +199,7 @@ if ($patchfile) {
 }
 
 $spec->prep("%setup -q -n $name-%{version} $create\n$patch");
-$spec->file_param("-f $name-$ver-filelist");
+$spec->file_param("-f $name-%{version}-filelist");
 $spec->push_file("%defattr(-,root,root)");
 
 my $test_clause = '';
@@ -241,15 +241,14 @@ $make_install
 find $RPM_BUILD_ROOT/usr -type f -print | \
 	sed "s@^$RPM_BUILD_ROOT@@g" | \
 	grep -v perllocal.pod | \
-	grep -v "\.packlist" > $name-$ver-filelist
-if [ "$(cat $name-$ver-filelist)X" = "X" ] ; then
+	grep -v "\.packlist" > $name-%{version}-filelist
+if [ "$(cat $name-%{version}-filelist)X" = "X" ] ; then
     echo "ERROR: EMPTY FILE LIST"
     exit 1
 fi
 };
 
 $inst =~ s/\$name/$name/g;
-$inst =~ s/\$ver/$ver/g;
 $inst =~ s/\$make_install/$make_install/g;
 
 $spec->install($inst);
@@ -275,9 +274,12 @@ close FH;
 open FH, ">$tmpdir/rpmrc"
   or die "Can't create $tmpdir/rpmrc: $!";
 
+my $macrofiles = qx(rpm --showrc | grep ^macrofiles | cut -f2- -d:);
+chomp $macrofiles;
+
 print FH qq{
 include: /usr/lib/rpm/rpmrc
-macrofiles: /usr/lib/rpm/macros:~/.rpmmacros:$tmpdir/macros
+macrofiles: $macrofiles:$tmpdir/macros
 };
 close FH;
 
