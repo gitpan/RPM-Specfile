@@ -51,6 +51,10 @@ if [ \"\$(cat $clm_name-$clm_version-filelist)X\" = \"X\" ] ; then
     exit -1
 fi
 E
+$spec->pre('echo "Running %%pre!"');
+$spec->post('echo "Running %%post!"');
+$spec->preun('echo "Running %%preun!"');
+$spec->postun('echo "Running %%postun!"');
 $spec->file_param("-f blippy-filelist");
 $spec->push_changelog(<<E);
 * \$clm_changelog

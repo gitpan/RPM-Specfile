@@ -6,21 +6,21 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '1.11';
+$VERSION = '1.12';
 
 sub new {
   my $class = shift;
 
   my $self = bless { }, $class;
-
+  
   return $self;
 }
 
 my @simple_accessors =
   qw(
      build buildarch buildrequires buildroot clean description distribution
-     epoch file_param group install license name packager prep release requires
-     summary url vendor version
+     epoch file_param group install license name packager post postun pre preun 
+     prep release requires summary url vendor version
     );
 
 foreach my $field (@simple_accessors) {
@@ -89,6 +89,7 @@ foreach my $field (@array_accessors) {
   }
 }
 
+
 sub add_changelog_entry {
   my $self = shift;
   my $who = shift;
@@ -149,7 +150,8 @@ sub generate_specfile {
 
   $output .= "\n";
 
-  foreach my $sect (qw/description prep build install clean/) {
+  foreach my $sect (qw/description prep build install clean pre post preun postun/) {
+    next if(!defined($self->$sect())); 
     $output .= "%$sect\n";
     my $content = $self->$sect();
     # remove leading and trailing whitespace and spurious linefeeds
