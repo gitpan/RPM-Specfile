@@ -31,6 +31,7 @@ $defaults{'release'} = '8';
 $defaults{'installdirs'} = "";
 {
   my ($username, $fullname) = (getpwuid($<))[0,6];
+  $fullname = (split /,/, $fullname)[0];
   $defaults{'email'}  = $fullname ? $fullname . ' ' : '';
   $defaults{'email'} .= '<';
   $defaults{'email'} .= $ENV{REPLYTO} || $username . '@redhat.com';
