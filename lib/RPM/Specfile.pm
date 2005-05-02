@@ -6,7 +6,7 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '1.17';
+$VERSION = '1.19';
 
 sub new {
   my $class = shift;
