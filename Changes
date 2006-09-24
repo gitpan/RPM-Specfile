@@ -1,5 +1,8 @@
 Revision history for Perl extension RPM.
 
+1.51  2006-09-24  cturner@pattern.net
+	- no code change from 1.50, just updating license
+
 1.19  Mon May  2 01:43:36 PDT 2005
 	- add support for --use-usr-local to try to avoid 
 	  conflicting with files from core perl itself

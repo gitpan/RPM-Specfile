@@ -6,20 +6,20 @@ use strict;
 
 use vars qw/$VERSION/;
 
-$VERSION = '1.19';
+$VERSION = '1.51';
 
 sub new {
   my $class = shift;
 
   my $self = bless { }, $class;
-  
+
   return $self;
 }
 
 my @simple_accessors =
   qw(
-     build buildarch buildrequires buildroot clean description distribution
-     epoch file_param group install license macros name packager post postun 
+     build buildarch buildrequires buildroot check clean description distribution
+     epoch file_param group install license macros name packager post postun
      pre preun prep release requires summary url vendor version
     );
 
@@ -125,21 +125,45 @@ sub generate_specfile {
   # Add any macro definitions to the begining.
   $output .= $self->macros() . "\n" if defined $self->macros();
 
-  foreach my $tag (qw/summary name version release epoch packager vendor distribution license group url buildroot buildarch requires buildrequires/) {
+  foreach my $tag (qw/summary name version release epoch packager vendor distribution license group url buildroot buildarch/) {
     my $proper = $proper_names{$tag} || ucfirst $tag;
 
     next unless defined $self->$tag();
     $output .= "$proper: " . $self->$tag() . "\n";
   }
 
+  my $req_format = sub {
+    my $req = shift;
+    my $ver = shift;
+
+    if (ref $req) {
+      ($req, $ver) = @$req;
+    }
+
+    if (defined $ver and $ver != 0) {
+      return "$req >= $ver";
+    }
+    else {
+      return "$req";
+    }
+  };
+
+  foreach my $tag (qw/requires buildrequires/) {
+    my $proper = $proper_names{$tag} || ucfirst $tag;
+
+    next unless defined $self->$tag();
+
+    $output .= "$proper: " . $req_format->($self->$tag) . "\n";
+  }
+
   my @reqs = $self->buildrequire;
   for my $i (0 .. $#reqs) {
-    $output .= "BuildRequires: $reqs[$i]\n";
+    $output .= "BuildRequires: " . $req_format->($reqs[$i]) . "\n";
   }
 
   @reqs = $self->require;
   for my $i (0 .. $#reqs) {
-    $output .= "Requires: $reqs[$i]\n";
+    $output .= "Requires: " . $req_format->($reqs[$i]) .  "\n";
   }
 
   my @sources = $self->source;
@@ -165,12 +189,30 @@ sub generate_specfile {
   my $prep = $self->prep();
   for my $i (0 .. $#patches) {
     $prep .= "\n" if($i == 0);		# Just in case they did not add a newline
-    $prep .= "%patch${i} -p1\n"; 
+    $prep .= "%patch${i} -p1\n";
   }
   $self->prep($prep) if(defined($prep));
 
+  if ($self->check) {
+    my $build = $self->build;
+
+    my ($cond, $body) = (undef, $self->check);
+    if (ref $body) {
+      $cond = $body->[0];
+      $body = $body->[1];
+    }
+
+    $build .= "\n%check";
+    if ($cond) {
+      $build .= " $cond";
+    }
+    $build .= "\n$body\n";
+
+    $self->build($build);
+  }
+
   foreach my $sect (qw/description prep build install clean pre post preun postun/) {
-    next if(!defined($self->$sect())); 
+    next if(!defined($self->$sect()));
     $output .= "%$sect\n";
     my $content = $self->$sect();
     # remove leading and trailing whitespace and spurious linefeeds
@@ -222,22 +264,22 @@ RPM::Specfile - Perl extension for creating RPM Specfiles
 =head1 DESCRIPTION
 
 This is a simple module for creation of RPM Spec files.  Most of the methods in this
-module are the same name as the RPM Spec file element they represent but in lower 
+module are the same name as the RPM Spec file element they represent but in lower
 case.  Furthermore the the methods are divided into two groups:
 
 =over 4
 
 =item Simple Accessors
 
-These methods have the have the exact name as the element they represent (in lower 
-case).  If passed no arguments return a scalar representing the element.  If 
+These methods have the have the exact name as the element they represent (in lower
+case).  If passed no arguments return a scalar representing the element.  If
 an argument is passed they will set the value of the element.
 
 =item List Accessors
 
-These methods manipulate items in the spec file that are lists (e.g. the list of 
+These methods manipulate items in the spec file that are lists (e.g. the list of
 patches maintained by the spec file).  Each element that is represented by a list
-accessor will have at least three methods associated with it.  
+accessor will have at least three methods associated with it.
 
 =over 8
 
@@ -246,7 +288,7 @@ accessor will have at least three methods associated with it.
 A method to directly manipulate individual members of the list.  These methods
 take as a first argument the index into the list, and as a second argument
 the element value.  If no arguments are given it simply returns the list.
-If only the index is given it returns the list member at that index.  If 
+If only the index is given it returns the list member at that index.  If
 the value is also given it will set the list member associated with the index.
 
 =item *
@@ -266,7 +308,7 @@ at the begining of their name.
 =head1 RPM SPEC FILE ORGANIZATION
 
 This section describes the basic structure of an RPM Spec file and how that
-applies to RPM::Specfile.  It does not attempt to give a full description of 
+applies to RPM::Specfile.  It does not attempt to give a full description of
 RPM Spec file syntax.
 
 RPM Spec files are divided into the following sections:
@@ -275,16 +317,16 @@ RPM Spec files are divided into the following sections:
 
 =item Preamble
 
-This is where the meta information for the rpm is stored, such as its name version and 
+This is where the meta information for the rpm is stored, such as its name version and
 description.  Also, macro definitions are generally put at the top of the preamble.
 The methods that are used to create this section are listed below:
 
-	buildarch(), buildrequire(), buildrequires(), buildroot(), 
+	buildarch(), buildrequire(), buildrequires(), buildroot(),
 	clear_buildrequire(), clear_changelog(), clear_patch(), clear_prefix(),
-	clear_provide(), clear_require(), clear_source(), description(), distribution(), 
-	epoch(), group(), license(), macros(), name(), packager(), patch(), prefix(), 
-	provide(), push_buildrequire(), push_patch(), push_prefix(), push_provide(), 
-	push_require(), push_source(), release(), require(), requires(), source(), 
+	clear_provide(), clear_require(), clear_source(), description(), distribution(),
+	epoch(), group(), license(), macros(), name(), packager(), patch(), prefix(),
+	provide(), push_buildrequire(), push_patch(), push_prefix(), push_provide(),
+	push_require(), push_source(), release(), require(), requires(), source(),
 	summary(), url(), vendor(), version()
 	
 Many of the elements of the Preamble are required.  See Maximum RPM for documentation
@@ -292,13 +334,13 @@ on which one are required and which ones are not.
 
 =item Build Scriptlets
 
-When rpms are built the install scriptlets are invoked.  These install 
+When rpms are built the install scriptlets are invoked.  These install
 scriptlets are %prep, %build, %install, and %clean.  The contents of these
 scripts can be set with the following methods:
 
-	build(), clean(), install(), prep()   
+	build(), clean(), install(), prep()
 
-The %prep, %build, and %install scriptlets are required, but may be 
+The %prep, %build, and %install scriptlets are required, but may be
 null.
 
 =item Install/Erase Scriplets
@@ -316,7 +358,7 @@ The %files section is used to define what files should be delivered to the
 system.  It further defines what the permsisions and ownership of the files
 should be.  The methods that work with the %files sections are:
 
-	file(), push_file(), clear_file(), file_param()   
+	file(), push_file(), clear_file(), file_param()
 
 Note, a files section is required, but it may contain no entries.
 
@@ -344,9 +386,9 @@ Returns the build arch.  If $arch is given will set build arch to $arch.
 
 	$spec->buildarch('noarch');
 
-=item buildrequire([$index, $requirement]) 
+=item buildrequire([$index, $requirement])
 
-Returns a list of build requirement entries.  If $index and $requirement are provided, 
+Returns a list of build requirement entries.  If $index and $requirement are provided,
 it will set the entry referenced by $index to $requirement.
 
 	@buildRequires = $spec->buildrequire();
@@ -391,13 +433,13 @@ Clears the list of changelog entries.
 
 	$spec->clear_changelog();
 
-=item clear_file() 
+=item clear_file()
 
 Clears the file list.
 
 	$spec->clear_file();
 
-=item clear_patch() 
+=item clear_patch()
 
 Clears the patch list.
 
@@ -421,7 +463,7 @@ Clears the requirements list.
 
 	$spec->clear_require();
 
-=item clear_source() 
+=item clear_source()
 
 Clears the list of sources.
 
@@ -435,7 +477,7 @@ Returns the description of the rpm.  If $desc is given, sets the description of 
 
 =item distribution([$distro])
 
-Returns the distribution of the rpm.  If $distro is given, sets the distribution 
+Returns the distribution of the rpm.  If $distro is given, sets the distribution
 of the rpm.
 
 	$spec->distribution('RedHat');
@@ -455,8 +497,8 @@ set the entry referenced by $index to $file.
 
 =item file_param([$param])
 
-Returns the parameters to add to the %files macro invocation.  If $param is given, 
-$param will be appended to the %files macro. 
+Returns the parameters to add to the %files macro invocation.  If $param is given,
+$param will be appended to the %files macro.
 
 	$spec->file_param('-f file_list');
 
@@ -476,7 +518,7 @@ will be set to this.
 
 =item license([$license])
 
-Returns the type of license the rpm is will be released under.  If $license is 
+Returns the type of license the rpm is will be released under.  If $license is
 given, license will be set to $license.
 
 
@@ -495,12 +537,12 @@ Returns the name of the rpm.  If $name is given, the name is set to $name.
 
 =item packager([$packager])
 
-Returns the email address of the packager.  If $packager is set, packager is set to 
+Returns the email address of the packager.  If $packager is set, packager is set to
 $packager.
 
 	$spec->packager('someone@some.where');
 
-=item patch([$index, $patch]) 
+=item patch([$index, $patch])
 
 Returns a list of patches.  If $index and $patch are provided it will
 set the entry referenced by $index to $patch.
@@ -514,7 +556,7 @@ to the value of $scriptlet.
 
 	$spec->post("echo Running %%post...\nexit 0");
 
-=item postun([$scriptlet]) 
+=item postun([$scriptlet])
 
 Returns the contents of the %postun scriptlet.  If $scriptlet is given, %postun is set
 to the value of $scriptlet.
@@ -556,24 +598,24 @@ set the entry referenced by $index to $provision.
 
 	@provides = $spec->provide();
 
-=item push_buildrequire([$entry]) 
+=item push_buildrequire([$entry])
 
 Push a build requirement onto the list of build requirments.
 
 	$spec->push_buildrequire('gcc >= 3.2');
 
-=item push_changelog([$entry]) 
+=item push_changelog([$entry])
 
 Pushes a changelog entry onto the list of changelog entries.
 
-=item push_file([$entry])  
+=item push_file([$entry])
 
 Pushes a file onto the list of files.
 
 	$spec->push_file('%attr(0664, root, root) %dir /usr/local/mypkg');
 	$spec->push_file('%attr(0664, root, root) /usr/local/mypkg/myfile');
 
-=item push_patch([$entry]) 
+=item push_patch([$entry])
 
 Pushes a patch onto the list of patches.
 
@@ -587,24 +629,24 @@ Push a prefix onto to the list of valid relocations.
 
 	$spec->clear_prefix('/usr/local/mypkg');
 
-=item push_provide([$entry]) 
+=item push_provide([$entry])
 
 Pushes a provision onto the list of provisions.
 
 	$spec->push_provide('kernel-tools = 2.6');
 
-=item push_require([$entry]) 
+=item push_require([$entry])
 
 Pushes a requirement onto the list of requirements.
 
 	$spec->push_require('perl(RPM::Specfile)');
 
-=item push_source([$entry]) 
+=item push_source([$entry])
 
 Pushes a source entry onto the list of sources.
 
 	$spec->push_source('wget-1.8.2.tar.gz');
- 
+
 =item release([$release])
 
 Returns the release of the rpm.  If $release is specified, release is set to $release.
@@ -625,7 +667,7 @@ be set to $requires.
 
 	$spec->requires('xdelta > 0:1.1.3-11, vlock > 0:1.3-13');
 
-=item source([$index, $source]) 
+=item source([$index, $source])
 
 Returns a list of source entries.  If $index and $source are provided it will
 set the entry referenced by $index to $source.
@@ -689,7 +731,13 @@ RPM::Specfile cpan archive.
 
 =head1 AUTHOR
 
-Chip Turner <cturner@redhat.com>
+Chip Turner <cturner@pattern.net>
+
+=head1 LICENSE
+
+This module is distributed under the same terms as Perl itself:
+
+http://dev.perl.org/licenses/
 
 =head1 SEE ALSO
 
